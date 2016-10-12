@@ -3,9 +3,47 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 
+	"github.com/astaxie/beego/logs"
+	"github.com/davidamey/omnitureproxy/api"
 	"github.com/davidamey/omnitureproxy/lib"
+	"github.com/davidamey/omnitureproxy/proxy"
+	"github.com/davidamey/omnitureproxy/sockets"
 )
+
+type OmnitureProxy struct {
+	ListenPort string
+	TargetURL  string
+	LogDir     string
+	AssetsDir  string
+}
+
+func (op *OmnitureProxy) Start() {
+	fmt.Println("Starting")
+
+	// static site
+	fs := http.FileServer(http.Dir(op.AssetsDir))
+	http.Handle("/", fs)
+
+	// api
+	http.Handle("/api/", api.NewApi())
+
+	// socket
+	socket := sockets.NewSocket()
+	http.Handle("/socket.io/", socket)
+
+	// logger
+	logger := logs.NewLogger(op.LogDir)
+	logger.StartProcessing()
+
+	// proxy
+	p := proxy.NewProxy(socket, logger, proxy.NewProxier(op.TargetURL))
+	http.HandleFunc("/b/ss/", p.Handle)
+
+	// start the server
+	http.ListenAndServe(op.ListenPort, nil)
+}
 
 func main() {
 	const (
