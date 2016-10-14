@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/astaxie/beego/logs"
 	"github.com/davidamey/omnitureproxy/api"
-	"github.com/davidamey/omnitureproxy/lib"
+	"github.com/davidamey/omnitureproxy/logs"
 	"github.com/davidamey/omnitureproxy/proxy"
 	"github.com/davidamey/omnitureproxy/sockets"
 )
@@ -51,9 +50,9 @@ func main() {
 		portUsage        = "server port e.g. ':3000' or ':8080'"
 		defaultTarget    = "https://nationwide.sc.omtrdc.net"
 		targetUsage      = "redirect url e.g. 'http://localhost:3000'"
-		defaultLogDir    = "logs"
+		defaultLogDir    = "_logs"
 		logDirUsage      = "folder to log to e.g. 'logs'"
-		defaultAssetsDir = "assets"
+		defaultAssetsDir = "_assets"
 		assetsDirUsage   = "folder to server static site from, e.g. 'assets'"
 	)
 
@@ -69,7 +68,7 @@ func main() {
 	fmt.Println("logging to:", *logDir)
 	fmt.Println("serving site from:", *assetsDir)
 
-	op := &omnitureproxy.OmnitureProxy{
+	op := &OmnitureProxy{
 		ListenPort: *port,
 		TargetURL:  *url,
 		LogDir:     *logDir,

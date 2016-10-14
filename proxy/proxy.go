@@ -8,7 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/davidamey/omnitureproxy/lib/logs"
+	"github.com/davidamey/omnitureproxy/logs"
 )
 
 type Proxier interface {

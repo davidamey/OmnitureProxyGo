@@ -76,5 +76,10 @@ func (p *prefix) pop() {
 // splitKVP returns two parts split on first `=`
 func splitKVP(s string) (string, string) {
 	parts := strings.SplitN(s, "=", 2)
-	return parts[0], parts[1]
+
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	} else {
+		return parts[0], ""
+	}
 }
