@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -48,16 +49,25 @@ func handler(w http.ResponseWriter, r *http.Request) *apiError {
 }
 
 func getDates(w http.ResponseWriter, r *http.Request) *apiError {
+	enc := json.NewEncoder(w)
+
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, fetcher.GetLogDates())
+	if err := enc.Encode(fetcher.GetLogDates()); err != nil {
+		return &apiError{Error: err, Message: "JSON error", Code: 500}
+	}
+
 	return nil
 }
 
 func getVisitors(w http.ResponseWriter, r *http.Request) *apiError {
 	vars := mux.Vars(r)
+	enc := json.NewEncoder(w)
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, fetcher.GetVisitorsForDate(vars["date"]))
+	if err := enc.Encode(fetcher.GetVisitorsForDate(vars["date"])); err != nil {
+		return &apiError{Error: err, Message: "JSON error", Code: 500}
+	}
+
 	return nil
 }
 
