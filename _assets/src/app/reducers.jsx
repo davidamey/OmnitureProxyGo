@@ -3,12 +3,14 @@ import { SELECT_VISITOR, REQUEST_VISITORS, RECEIVE_VISITORS } from '../visitor/V
 import { REQUEST_LOG, RECEIVE_LOG } from '../log/LogActions'
 
 const initialState = {
-    logs: {}/*
+    logs: {
+        /*
         '2016-10-14': {
             'vis1': ['v1-log1', 'v1-log2'],
             'vis2': ['v2-log1', 'v2-log2']
         }
-    }*/,
+        */
+    },
 
     selectedDate : null,
     selectedVisitor : null,
@@ -70,7 +72,7 @@ const reducers = (state = initialState, action) => {
                     ...state.logs,
                     [action.date]: {
                         ...state.logs[action.date],
-                        [action.visitor]: action.log//[{ pageName: "moo" }]
+                        [action.visitor]: action.log
                     }
                 }
             }
