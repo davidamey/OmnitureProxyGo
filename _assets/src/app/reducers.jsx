@@ -23,7 +23,11 @@ const initialState = {
 const reducers = (state = initialState, action) => {
     switch (action.type) {
         case SELECT_DATE:
-            return { ...state, selectedDate: action.date }
+            return {
+                ...state,
+                selectedDate: action.date,
+                selectedVisitor: null
+            }
 
         case REQUEST_DATES:
             return { ...state, isFetchingDates: true }

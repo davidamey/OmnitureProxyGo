@@ -2,12 +2,13 @@
 import React, { PropTypes } from 'react'
 import Visitor from './Visitor.jsx'
 
-const VisitorList = ({ visitors, onVisitorClick }) => (
+const VisitorList = ({ visitors, selectedVisitor, onVisitorClick }) => (
     <ul>
         { visitors.map( vid =>
             <Visitor
                 key={vid}
                 vid={vid}
+                selected={ vid === selectedVisitor }
                 onClick={ () => onVisitorClick(vid) }
             />
         )}
@@ -16,6 +17,7 @@ const VisitorList = ({ visitors, onVisitorClick }) => (
 
 VisitorList.propTypes = {
     visitors : PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+    selectedVisitor: PropTypes.string,
     onVisitorClick: PropTypes.func.isRequired
 };
 
@@ -27,14 +29,14 @@ import { selectVisitor } from './VisitorActions'
 
 const mapStateToProps = (state) => {
     return {
-        visitors : Object.keys(state.logs[state.selectedDate] || {})
+        visitors : Object.keys(state.logs[state.selectedDate] || {}),
+        selectedVisitor : state.selectedVisitor
     }
 }
 
 const mapDispatchToProps = (dispatch) => {
     return {
         onVisitorClick: (vid) => {
-            // alert(`visitor ${id} clicked`);
             dispatch(selectVisitor(vid))
         }
     }

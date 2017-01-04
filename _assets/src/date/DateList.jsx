@@ -1,13 +1,14 @@
 // Component
 import React, { PropTypes } from 'react'
-import Date from './Date'
+import DateItem from './DateItem'
 
-const DateList = ({ dates, onDateClick }) => (
+const DateList = ({ dates, selectedDate, onDateClick }) => (
     <ul>
         { dates.map( d =>
-            <Date
+            <DateItem
                 key={d}
                 date={d}
+                selected={ d === selectedDate }
                 onClick={ () => onDateClick(d) }
             />
         )}
@@ -15,7 +16,8 @@ const DateList = ({ dates, onDateClick }) => (
 );
 
 DateList.propTypes = {
-    dates : PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+    dates: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
+    selectedDate: PropTypes.string,
     onDateClick: PropTypes.func.isRequired
 }
 
@@ -27,14 +29,14 @@ import { selectDate } from './DateActions'
 
 const mapStateToProps = (state) => {
     return {
-        dates: Object.keys(state.logs)
+        dates: Object.keys(state.logs),
+        selectedDate: state.selectedDate
     }
 }
 
 const mapDispatchToProps = (dispatch) => {
     return {
         onDateClick: (date) => {
-            // alert(`date ${id} clicked`);
             dispatch(selectDate(date))
         }
     }
