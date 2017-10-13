@@ -18,6 +18,8 @@ type apiError struct {
 type apiHandler func(http.ResponseWriter, *http.Request) *apiError
 
 func (fn apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	if e := fn(w, r); e != nil { // e is *appError, not os.Error.
 		msg := fmt.Sprintf("%s\n%v", e.Message, e.Error)
 		http.Error(w, msg, e.Code)
@@ -44,7 +46,6 @@ func NewApi() http.Handler {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) *apiError {
-	// fmt.Fprintf(w, "API baby")
 	return &apiError{nil, "Can't display record", 500}
 }
 

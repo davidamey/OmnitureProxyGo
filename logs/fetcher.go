@@ -3,6 +3,7 @@ package logs
 import (
 	"io/ioutil"
 	"path"
+	"regexp"
 )
 
 type Fetcher interface {
@@ -15,6 +16,8 @@ type fileFetcher struct {
 	rootDir string
 }
 
+var validDate = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
 func NewFetcher(dir string) Fetcher {
 	return &fileFetcher{rootDir: dir}
 }
@@ -24,7 +27,7 @@ func (f *fileFetcher) GetLogDates() []string {
 
 	var dates []string
 	for _, f := range files {
-		if f.IsDir() {
+		if f.IsDir() && validDate.MatchString(f.Name()) {
 			dates = append(dates, f.Name())
 		}
 	}

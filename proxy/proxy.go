@@ -32,7 +32,7 @@ func (p *proxyWrapper) Handle(w http.ResponseWriter, r *http.Request) {
 	// Reading the body clears the reader so put a new one in its place
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	// fmt.Println("broadcasting")
+	fmt.Println("broadcasting")
 	logEntry := logs.LogEntryFromBytes(body)
 	p.logger.Save(logEntry)
 	p.socket.BroadcastTo("logees", "log", logEntry)

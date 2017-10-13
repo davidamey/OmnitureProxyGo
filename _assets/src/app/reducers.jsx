@@ -12,13 +12,13 @@ const initialState = {
         */
     },
 
-    selectedDate : null,
-    selectedVisitor : null,
+    selectedDate: null,
+    selectedVisitor: null,
 
-    isFetchingDates : false,
-    isFetchingVisitors : false,
-    isFetchingLog : false
-};
+    isFetchingDates: false,
+    isFetchingVisitors: false,
+    isFetchingLog: false
+}
 
 const reducers = (state = initialState, action) => {
     switch (action.type) {

@@ -24,9 +24,9 @@ class DateItem extends React.Component {
             >
                 { this.props.date }
             </li>
-        );
+        )
     }
-};
+}
 
 // Date.propTypes = {
 //     onClick: PropTypes.func.isRequired,
