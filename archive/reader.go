@@ -25,7 +25,7 @@ func NewReader(dir string) Reader {
 func (r *fileReader) GetDates() []string {
 	files, _ := ioutil.ReadDir(r.rootDir)
 
-	var dates []string
+	dates := []string{}
 	for _, f := range files {
 		if f.IsDir() && validDate.MatchString(f.Name()) {
 			dates = append(dates, f.Name())
@@ -39,7 +39,7 @@ func (r *fileReader) GetVisitorsForDate(date string) []string {
 
 	files, _ := ioutil.ReadDir(path.Join(r.rootDir, date))
 
-	var visitors []string
+	visitors := []string{}
 	for _, f := range files {
 		visitors = append(visitors, f.Name())
 	}
