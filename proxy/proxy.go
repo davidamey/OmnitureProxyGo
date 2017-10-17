@@ -8,7 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/davidamey/omnitureproxy/logs"
+	"github.com/davidamey/omnitureproxy/archive"
 )
 
 type Proxier interface {
@@ -20,9 +20,9 @@ type Socket interface {
 }
 
 type proxyWrapper struct {
-	logger logs.Logger
-	socket Socket
-	proxy  Proxier
+	archiver archive.Writer
+	socket   Socket
+	proxy    Proxier
 }
 
 func (p *proxyWrapper) Handle(w http.ResponseWriter, r *http.Request) {
@@ -33,9 +33,9 @@ func (p *proxyWrapper) Handle(w http.ResponseWriter, r *http.Request) {
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
 	fmt.Println("broadcasting")
-	logEntry := logs.LogEntryFromBytes(body)
-	p.logger.Save(logEntry)
-	p.socket.BroadcastTo("logees", "log", logEntry)
+	entry := archive.EntryFromBytes(body)
+	p.archiver.Save(entry)
+	p.socket.BroadcastTo("clients", "entry", entry)
 
 	if p.proxy == nil {
 		w.WriteHeader(200)
@@ -54,10 +54,10 @@ func NewProxier(target string) Proxier {
 	}
 }
 
-func NewProxy(socket Socket, logger logs.Logger, proxy Proxier) *proxyWrapper {
+func NewProxy(socket Socket, archiver archive.Writer, proxy Proxier) *proxyWrapper {
 	return &proxyWrapper{
-		logger: logger,
-		socket: socket,
-		proxy:  proxy,
+		archiver: archiver,
+		socket:   socket,
+		proxy:    proxy,
 	}
 }
