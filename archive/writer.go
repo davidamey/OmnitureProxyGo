@@ -1,4 +1,4 @@
-package logs
+package archive
 
 import (
 	"encoding/json"
@@ -9,67 +9,67 @@ import (
 	"time"
 )
 
-type Logger interface {
+type Writer interface {
 	StartProcessing()
 	StopProcessing()
-	Save(*LogEntry)
+	Save(*Entry)
 	HasPendingWrites() bool
 }
 
-type fileLogger struct {
+type fileWriter struct {
 	rootDir string
-	queue   chan *LogEntry
+	queue   chan *Entry
 	quit    chan bool
 }
 
-func NewLogger(dir string) Logger {
-	return &fileLogger{
+func NewWriter(dir string) Writer {
+	return &fileWriter{
 		rootDir: dir,
-		queue:   make(chan *LogEntry, 100),
+		queue:   make(chan *Entry, 100),
 		quit:    make(chan bool),
 	}
 }
 
-func (l *fileLogger) StartProcessing() {
+func (w *fileWriter) StartProcessing() {
 	go func() {
 		for {
 			select {
-			case le := <-l.queue:
-				writeLog(l.rootDir, le)
+			case entry := <-w.queue:
+				writeEntry(w.rootDir, entry)
 
-			case <-l.quit:
+			case <-w.quit:
 				return
 			}
 		}
 	}()
 }
 
-func (l *fileLogger) StopProcessing() {
+func (w *fileWriter) StopProcessing() {
 	go func() {
-		l.quit <- true
+		w.quit <- true
 	}()
 }
 
-func (l *fileLogger) Save(le *LogEntry) {
-	l.queue <- le
+func (w *fileWriter) Save(entry *Entry) {
+	w.queue <- entry
 }
 
-func (l *fileLogger) HasPendingWrites() bool {
-	return len(l.queue) > 0
+func (w *fileWriter) HasPendingWrites() bool {
+	return len(w.queue) > 0
 }
 
-func getLogFile(rootDir, vID string) string {
-	logDir := path.Join(rootDir, time.Now().Format("2006-01-02"))
+func getArchive(rootDir, vID string) string {
+	dir := path.Join(rootDir, time.Now().Format("2006-01-02"))
 
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		os.MkdirAll(logDir, 0755)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.MkdirAll(dir, 0755)
 	}
 
-	return path.Join(logDir, vID)
+	return path.Join(dir, vID)
 }
 
-func writeLog(rootDir string, le *LogEntry) {
-	file := getLogFile(rootDir, le.VisitorID)
+func writeEntry(rootDir string, entry *Entry) {
+	file := getArchive(rootDir, entry.VisitorID)
 
 	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -79,12 +79,12 @@ func writeLog(rootDir string, le *LogEntry) {
 
 	w := io.Writer(f)
 
-	b, err := json.Marshal(le)
+	b, err := json.Marshal(entry)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b = append(b, ',')
+	b = append(b, ',', '\n')
 
 	w.Write(b)
 }

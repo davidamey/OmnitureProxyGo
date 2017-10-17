@@ -1,4 +1,4 @@
-package logs
+package archive
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-func TestLogEntryFromString(t *testing.T) {
+func TestEntryFromString(t *testing.T) {
 	raw := "mid=visitorid&pageName=pagename&c.&a.&DeviceName=devicename&.a&.c"
-	want := &LogEntry{
+	want := &Entry{
 		Time:      time.Now(),
 		VisitorID: "visitorid",
 		PageName:  "pagename",
@@ -21,12 +21,12 @@ func TestLogEntryFromString(t *testing.T) {
 		},
 	}
 
-	if diff := Diff(want, LogEntryFromString(raw)); diff != "" {
+	if diff := Diff(want, EntryFromString(raw)); diff != "" {
 		t.Errorf("invalid log entry. differs at %s", diff)
 	}
 }
 
-func Diff(expected, actual *LogEntry) string {
+func Diff(expected, actual *Entry) string {
 	leA, leB := *expected, *actual
 
 	if leA.Time.Sub(leB.Time).Seconds() > 1 {

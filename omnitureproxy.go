@@ -3,75 +3,99 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/davidamey/omnitureproxy/api"
-	"github.com/davidamey/omnitureproxy/logs"
+	"github.com/davidamey/omnitureproxy/archive"
 	"github.com/davidamey/omnitureproxy/proxy"
 	"github.com/davidamey/omnitureproxy/sockets"
+	"github.com/urfave/negroni"
 )
 
 type OmnitureProxy struct {
 	ListenPort string
 	TargetURL  string
-	LogDir     string
+	ArchiveDir string
 	AssetsDir  string
 }
 
 func (op *OmnitureProxy) Start() {
-	fmt.Println("Starting")
+	log.Println("Starting")
 
-	// static site
-	fs := http.FileServer(http.Dir(op.AssetsDir))
-	http.Handle("/", fs)
-
-	// api
-	http.Handle("/api/", api.NewApi())
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(op.AssetsDir)))
+	mux.Handle("/api/", api.NewApi())
 
 	// socket
 	socket := sockets.NewSocket()
-	http.Handle("/socket.io/", socket)
+	mux.Handle("/socket.io/", socket)
 
-	// logger
-	logger := logs.NewLogger(op.LogDir)
-	logger.StartProcessing()
+	// archive
+	archiver := archive.NewWriter(op.ArchiveDir)
+	archiver.StartProcessing()
 
 	// proxy
-	p := proxy.NewProxy(socket, logger, proxy.NewProxier(op.TargetURL))
-	http.HandleFunc("/b/ss/", p.Handle)
+	p := proxy.NewProxy(socket, archiver, proxy.NewProxier(op.TargetURL))
+	mux.HandleFunc("/b/ss/", p.Handle)
+
+	n := negroni.New()
+	n.Use(negroni.NewLogger())
+	n.UseHandler(mux)
 
 	// start the server
-	http.ListenAndServe(op.ListenPort, nil)
+	s := &http.Server{
+		Addr:           detectAddress(),
+		Handler:        n,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	log.Fatal(s.ListenAndServe())
+	// log.Fatal(s.ListenAndServeTLS("cantor.cer", "cantor.key"))
+}
+
+func detectAddress(addr ...string) string {
+	if len(addr) > 0 {
+		return addr[0]
+	}
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
+	}
+	return ":3000"
 }
 
 func main() {
 	const (
-		defaultPort      = ":3000"
-		portUsage        = "server port e.g. ':3000' or ':8080'"
-		defaultTarget    = "https://nationwide.sc.omtrdc.net"
-		targetUsage      = "redirect url e.g. 'http://localhost:3000'"
-		defaultLogDir    = "_logs"
-		logDirUsage      = "folder to log to e.g. 'logs'"
-		defaultAssetsDir = "_assets"
-		assetsDirUsage   = "folder to server static site from, e.g. 'assets'"
+		defaultPort       = ":3001"
+		portUsage         = "server port e.g. ':3000' or ':8080'"
+		defaultTarget     = "http://localhost:5000"
+		targetUsage       = "redirect url e.g. 'http://localhost:3000'"
+		defaultArchiveDir = "_archive"
+		archiveDirUsage   = "folder to log to e.g. 'archive'"
+		defaultAssetsDir  = "_assets"
+		assetsDirUsage    = "folder to server static site from, e.g. 'assets'"
 	)
 
 	port := flag.String("port", defaultPort, portUsage)
 	url := flag.String("url", defaultTarget, targetUsage)
-	logDir := flag.String("logs", defaultLogDir, logDirUsage)
+	archiveDir := flag.String("archive", defaultArchiveDir, archiveDirUsage)
 	assetsDir := flag.String("assets", defaultAssetsDir, assetsDirUsage)
 
 	flag.Parse()
 
 	fmt.Println("server will run on:", *port)
 	fmt.Println("redirecting to:", *url)
-	fmt.Println("logging to:", *logDir)
+	fmt.Println("archiving to:", *archiveDir)
 	fmt.Println("serving site from:", *assetsDir)
 
 	op := &OmnitureProxy{
 		ListenPort: *port,
 		TargetURL:  *url,
-		LogDir:     *logDir,
+		ArchiveDir: *archiveDir,
 		AssetsDir:  *assetsDir,
 	}
 

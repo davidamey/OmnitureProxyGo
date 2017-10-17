@@ -1,4 +1,4 @@
-package logs
+package archive
 
 import (
 	"io/ioutil"
@@ -6,24 +6,24 @@ import (
 	"regexp"
 )
 
-type Fetcher interface {
-	GetLogDates() []string
+type Reader interface {
+	GetDates() []string
 	GetVisitorsForDate(string) []string
-	GetLog(string, string) []byte
+	GetArchive(string, string) []byte
 }
 
-type fileFetcher struct {
+type fileReader struct {
 	rootDir string
 }
 
 var validDate = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-func NewFetcher(dir string) Fetcher {
-	return &fileFetcher{rootDir: dir}
+func NewReader(dir string) Reader {
+	return &fileReader{rootDir: dir}
 }
 
-func (f *fileFetcher) GetLogDates() []string {
-	files, _ := ioutil.ReadDir(f.rootDir)
+func (r *fileReader) GetDates() []string {
+	files, _ := ioutil.ReadDir(r.rootDir)
 
 	var dates []string
 	for _, f := range files {
@@ -34,10 +34,10 @@ func (f *fileFetcher) GetLogDates() []string {
 	return dates
 }
 
-func (f *fileFetcher) GetVisitorsForDate(date string) []string {
+func (r *fileReader) GetVisitorsForDate(date string) []string {
 	// todo: check date dir exists?
 
-	files, _ := ioutil.ReadDir(path.Join(f.rootDir, date))
+	files, _ := ioutil.ReadDir(path.Join(r.rootDir, date))
 
 	var visitors []string
 	for _, f := range files {
@@ -46,10 +46,10 @@ func (f *fileFetcher) GetVisitorsForDate(date string) []string {
 	return visitors
 }
 
-func (f *fileFetcher) GetLog(date, visitor string) []byte {
-	logFile := path.Join(f.rootDir, date, visitor)
+func (r *fileReader) GetArchive(date, visitor string) []byte {
+	logFile := path.Join(r.rootDir, date, visitor)
 	raw, _ := ioutil.ReadFile(logFile)
 
-	// To make this valid JSON, we need to remove the last `,` and wrap in `[]`.
-	return append(append([]byte{'['}, raw[:len(raw)-1]...), ']')
+	// To make this valid JSON, we need to remove the last `,\n` and wrap in `[]`.
+	return append(append([]byte{'['}, raw[:len(raw)-2]...), ']')
 }

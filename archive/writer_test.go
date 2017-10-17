@@ -1,4 +1,4 @@
-package logs
+package archive
 
 import (
 	"fmt"
@@ -9,8 +9,9 @@ import (
 	"time"
 )
 
-var rootDir string = "log_test_dir"
-var le *LogEntry = &LogEntry{
+const rootDir string = "archive_test_dir"
+
+var entry *Entry = &Entry{
 	Time:      time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
 	VisitorID: "visitorid",
 	PageName:  "pagename",
@@ -23,16 +24,16 @@ var le *LogEntry = &LogEntry{
 	},
 }
 
-func assertLog(t *testing.T, vID, want string) {
-	logFile := path.Join(rootDir, time.Now().Format("2006-01-02"), vID)
+func assertArchive(t *testing.T, vID, want string) {
+	archive := path.Join(rootDir, time.Now().Format("2006-01-02"), vID)
 
-	got, err := ioutil.ReadFile(logFile)
+	got, err := ioutil.ReadFile(archive)
 	if err != nil {
-		t.Errorf("unable to read log file %s", logFile)
+		t.Errorf("unable to read archive %s", archive)
 	}
 
 	if string(got) != want {
-		t.Errorf("log mismatch:\nexpected: %q\ngot: %q", want, string(got))
+		t.Errorf("archive mismatch:\nexpected: %q\ngot: %q", want, string(got))
 	}
 }
 
@@ -40,52 +41,52 @@ func cleanUp() {
 	os.RemoveAll(rootDir)
 }
 
-func TestLoggerSingleVisitor(t *testing.T) {
+func TestWriterSingleVisitor(t *testing.T) {
 	defer cleanUp()
 
 	// Setup
-	l := NewLogger(rootDir)
-	l.StartProcessing()
-	defer l.StopProcessing()
+	w := NewWriter(rootDir)
+	w.StartProcessing()
+	defer w.StopProcessing()
 
 	// Test
-	l.Save(le)
+	w.Save(entry)
 
-	for l.HasPendingWrites() {
+	for w.HasPendingWrites() {
 		time.Sleep(time.Second)
 	}
 
 	// Assert
-	assertLog(t, le.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},")
+	assertArchive(t, entry.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
-func TestLoggerSameVisitor(t *testing.T) {
+func TestWriterSameVisitor(t *testing.T) {
 	defer cleanUp()
 
 	// Setup
-	l := NewLogger(rootDir)
-	l.StartProcessing()
-	defer l.StopProcessing()
+	w := NewWriter(rootDir)
+	w.StartProcessing()
+	defer w.StopProcessing()
 
 	// Test
-	l.Save(le)
-	l.Save(le)
+	w.Save(entry)
+	w.Save(entry)
 
-	for l.HasPendingWrites() {
+	for w.HasPendingWrites() {
 		time.Sleep(time.Second)
 	}
 
 	// Assert
-	assertLog(t, le.VisitorID,
-		"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},"+
-			"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},")
+	assertArchive(t, entry.VisitorID,
+		"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n"+
+			"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
-func TestLoggerMultipleVisitors(t *testing.T) {
+func TestWriterMultipleVisitors(t *testing.T) {
 	defer cleanUp()
 
 	// Setup
-	le2 := &LogEntry{
+	entry2 := &Entry{
 		Time:      time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
 		VisitorID: "visitorid2",
 		PageName:  "pagename",
@@ -99,38 +100,38 @@ func TestLoggerMultipleVisitors(t *testing.T) {
 	}
 
 	// Setup
-	l := NewLogger(rootDir)
-	l.StartProcessing()
-	defer l.StopProcessing()
+	w := NewWriter(rootDir)
+	w.StartProcessing()
+	defer w.StopProcessing()
 
 	// Test
-	l.Save(le)
-	l.Save(le2)
+	w.Save(entry)
+	w.Save(entry2)
 
-	for l.HasPendingWrites() {
+	for w.HasPendingWrites() {
 		time.Sleep(time.Second)
 	}
 
 	// Assert
-	assertLog(t, le.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},")
-	assertLog(t, le2.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid2\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid2\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},")
+	assertArchive(t, entry.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
+	assertArchive(t, entry2.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid2\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid2\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
-func BenchmarkLogger(b *testing.B) {
+func BenchmarkWriter(b *testing.B) {
 	defer cleanUp()
 
 	// Setup
-	l := NewLogger(rootDir)
-	l.StartProcessing()
-	defer l.StopProcessing()
+	w := NewWriter(rootDir)
+	w.StartProcessing()
+	defer w.StopProcessing()
 
 	// Test
 	for i := 0; i < b.N; i++ {
-		le.VisitorID = fmt.Sprintf("visitorId%d", i)
-		l.Save(le)
+		entry.VisitorID = fmt.Sprintf("visitorId%d", i)
+		w.Save(entry)
 	}
 
-	for l.HasPendingWrites() {
+	for w.HasPendingWrites() {
 		time.Sleep(time.Second)
 	}
 }

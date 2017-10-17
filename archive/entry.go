@@ -1,11 +1,11 @@
-package logs
+package archive
 
 import (
 	"strings"
 	"time"
 )
 
-type LogEntry struct {
+type Entry struct {
 	Time           time.Time         `json:"time"`
 	VisitorID      string            `json:"visitorID"`
 	PageName       string            `json:"pageName"`
@@ -13,12 +13,12 @@ type LogEntry struct {
 	ContextData    map[string]string `json:"contextData"`
 }
 
-func LogEntryFromBytes(b []byte) *LogEntry {
-	return LogEntryFromString(string(b))
+func EntryFromBytes(b []byte) *Entry {
+	return EntryFromString(string(b))
 }
 
-func LogEntryFromString(raw string) *LogEntry {
-	result := LogEntry{
+func EntryFromString(raw string) *Entry {
+	result := Entry{
 		Time:           time.Now(),
 		AdditionalData: make(map[string]string),
 		ContextData:    make(map[string]string),

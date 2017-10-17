@@ -1,4 +1,4 @@
-package logs
+package archive
 
 import (
 	"os"
@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-var fetcherRootDir string = "log_test_dir"
+const fetcherRootDir string = "log_test_dir"
 
 func TestGetLogDates(t *testing.T) {
 	// Setup
 	os.MkdirAll(path.Join(fetcherRootDir, "2016-01-01"), 0755)
 	os.MkdirAll(path.Join(fetcherRootDir, "2015-02-02"), 0755)
 
-	f := NewFetcher(fetcherRootDir)
+	f := NewReader(fetcherRootDir)
 
 	// Act
-	dates := f.GetLogDates()
+	dates := f.GetDates()
 
 	// Assert
 	if len(dates) != 2 {
