@@ -1,81 +1,52 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 
-	"github.com/davidamey/omnitureproxy/logs"
-	"github.com/gorilla/mux"
+	"github.com/davidamey/omnitureproxy/archive"
+	"github.com/gin-gonic/gin"
 )
 
-type apiError struct {
-	Error   error
-	Message string
-	Code    int
-}
+var rgxDate = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}$")
+var rgxVid = regexp.MustCompile("^\\d{38}$")
 
-type apiHandler func(http.ResponseWriter, *http.Request) *apiError
-
-func (fn apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	if e := fn(w, r); e != nil { // e is *appError, not os.Error.
-		msg := fmt.Sprintf("%s\n%v", e.Message, e.Error)
-		http.Error(w, msg, e.Code)
-	}
-}
-
-var fetcher logs.Fetcher
+var fetcher archive.Reader = archive.NewReader("_archive")
 
 func NewApi() http.Handler {
-	fetcher = logs.NewFetcher("_logs")
+	r := gin.New()
+	api := r.Group("/api")
 
-	api := mux.NewRouter().PathPrefix("/api").Subrouter()
-	api.Handle("/", apiHandler(handler))
+	api.Any("/", func(c *gin.Context) {
+		c.String(200, "/api/logs/")
+	})
 
-	lr := api.PathPrefix("/logs").Subrouter()
-	lr.Handle("/", apiHandler(getDates))
-	lr.Handle("/{date:\\d{4}-\\d{2}-\\d{2}}/", apiHandler(getVisitors))
-	lr.Handle("/{date:\\d{4}-\\d{2}-\\d{2}}/{vid:\\d+}", apiHandler(getLog))
+	api.GET("/logs", func(c *gin.Context) {
+		c.JSON(200, fetcher.GetDates())
+	})
 
-	// api.PathPrefix("/visitors/").HandlerFunc(visitorHandler)
-	// api.PathPrefix("/csv/").HandlerFunc(csvHandler)
+	api.GET("/logs/:date", func(c *gin.Context) {
+		d := c.Param("date")
+		if !rgxDate.MatchString(d) {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid date"))
+			return
+		}
+		c.JSON(200, fetcher.GetVisitorsForDate(d))
+	})
 
-	return api
-}
+	api.GET("/logs/:date/:vid", func(c *gin.Context) {
+		d, v := c.Param("date"), c.Param("vid")
+		if !rgxDate.MatchString(d) {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid date"))
+			return
+		}
+		if !rgxVid.MatchString(v) {
+			c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid vid"))
+			return
+		}
+		c.Data(200, "application/json; charset=utf-8", fetcher.GetArchive(d, v))
+	})
 
-func handler(w http.ResponseWriter, r *http.Request) *apiError {
-	return &apiError{nil, "Can't display record", 500}
-}
-
-func getDates(w http.ResponseWriter, r *http.Request) *apiError {
-	enc := json.NewEncoder(w)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := enc.Encode(fetcher.GetLogDates()); err != nil {
-		return &apiError{Error: err, Message: "JSON error", Code: 500}
-	}
-
-	return nil
-}
-
-func getVisitors(w http.ResponseWriter, r *http.Request) *apiError {
-	vars := mux.Vars(r)
-	enc := json.NewEncoder(w)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := enc.Encode(fetcher.GetVisitorsForDate(vars["date"])); err != nil {
-		return &apiError{Error: err, Message: "JSON error", Code: 500}
-	}
-
-	return nil
-}
-
-func getLog(w http.ResponseWriter, r *http.Request) *apiError {
-	vars := mux.Vars(r)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(fetcher.GetLog(vars["date"], vars["vid"]))
-	return nil
+	return r
 }
