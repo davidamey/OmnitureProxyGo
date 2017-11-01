@@ -11,7 +11,6 @@ import (
 	"github.com/davidamey/omnitureproxy/api"
 	"github.com/davidamey/omnitureproxy/archive"
 	"github.com/davidamey/omnitureproxy/proxy"
-	"github.com/davidamey/omnitureproxy/sockets"
 	"github.com/urfave/negroni"
 )
 
@@ -22,6 +21,10 @@ type OmnitureProxy struct {
 	AssetsDir  string
 }
 
+func (op *OmnitureProxy) Notify(entry *archive.Entry) {
+	fmt.Printf("notify: %s\n", entry.PageName)
+}
+
 func (op *OmnitureProxy) Start() {
 	log.Println("Starting")
 
@@ -30,15 +33,16 @@ func (op *OmnitureProxy) Start() {
 	mux.Handle("/api/", api.NewApi())
 
 	// socket
-	socket := sockets.NewSocket()
-	mux.Handle("/socket.io/", socket)
+	// socket := sockets.NewSocket()
+	// mux.Handle("/socket.io/", socket)
 
 	// archive
 	archiver := archive.NewWriter(op.ArchiveDir)
 	archiver.StartProcessing()
+	defer archiver.StopProcessing()
 
 	// proxy
-	p := proxy.NewProxy(socket, archiver, proxy.NewProxier(op.TargetURL))
+	p := proxy.NewProxy(archiver, op, op.TargetURL)
 	mux.HandleFunc("/b/ss/", p.Handle)
 
 	n := negroni.New()

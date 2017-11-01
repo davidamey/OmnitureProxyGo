@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/davidamey/omnitureproxy/archive"
+	"github.com/fukata/golang-stats-api-handler"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,6 +22,8 @@ func NewApi() http.Handler {
 	api.Any("/", func(c *gin.Context) {
 		c.String(200, "/api/logs/")
 	})
+
+	api.Any("/stats", gin.WrapF(stats_api.Handler))
 
 	api.GET("/logs", func(c *gin.Context) {
 		c.JSON(200, fetcher.GetDates())

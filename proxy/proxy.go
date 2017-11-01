@@ -11,41 +11,40 @@ import (
 	"github.com/davidamey/omnitureproxy/archive"
 )
 
+type Notifier interface {
+	Notify(*archive.Entry)
+}
+
 type Proxier interface {
 	ServeHTTP(http.ResponseWriter, *http.Request)
 }
 
-type Socket interface {
-	BroadcastTo(string, string, ...interface{})
-}
-
-type proxyWrapper struct {
+type proxy struct {
 	archiver archive.Writer
-	socket   Socket
-	proxy    Proxier
+	notifier Notifier
+	proxier  Proxier
 }
 
-func (p *proxyWrapper) Handle(w http.ResponseWriter, r *http.Request) {
+func (p *proxy) Handle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, _ := ioutil.ReadAll(r.Body)
 
 	// Reading the body clears the reader so put a new one in its place
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	fmt.Println("broadcasting")
 	entry := archive.EntryFromBytes(body)
 	p.archiver.Save(entry)
-	p.socket.BroadcastTo("clients", "entry", entry)
+	p.notifier.Notify(entry)
 
-	if p.proxy == nil {
+	if p.proxier == nil {
 		w.WriteHeader(200)
 		fmt.Println(w, "No proxy")
 	} else {
-		p.proxy.ServeHTTP(w, r)
+		p.proxier.ServeHTTP(w, r)
 	}
 }
 
-func NewProxier(target string) Proxier {
+func newProxier(target string) Proxier {
 	if target == "" {
 		return nil
 	} else {
@@ -54,10 +53,6 @@ func NewProxier(target string) Proxier {
 	}
 }
 
-func NewProxy(socket Socket, archiver archive.Writer, proxy Proxier) *proxyWrapper {
-	return &proxyWrapper{
-		archiver: archiver,
-		socket:   socket,
-		proxy:    proxy,
-	}
+func NewProxy(archiver archive.Writer, notifier Notifier, proxyURL string) *proxy {
+	return &proxy{archiver, notifier, newProxier(proxyURL)}
 }
