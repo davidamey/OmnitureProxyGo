@@ -11,6 +11,20 @@ import Log from '../log/Log'
 
 class App extends React.Component {
     componentDidMount() {
+
+        const sock = new WebSocket(`ws://${location.host}/ws`)
+        sock.onopen = () => {
+            console.log('[ws] open')
+        }
+
+        sock.onmessage = e => {
+            console.log('[ws] message', e.data)
+        }
+
+        sock.onclose = () => {
+            console.log('[ws] close')
+        }
+
         const { dispatch, selectedDate } = this.props
         dispatch(fetchDates())
     }
