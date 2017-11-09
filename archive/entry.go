@@ -8,6 +8,7 @@ import (
 type Entry struct {
 	Time           time.Time         `json:"time"`
 	VisitorID      string            `json:"visitorID"`
+	DeviceName     string            `json:"deviceName"`
 	PageName       string            `json:"pageName"`
 	AdditionalData map[string]string `json:"additionalData"`
 	ContextData    map[string]string `json:"contextData"`
@@ -19,6 +20,7 @@ func EntryFromBytes(b []byte) *Entry {
 
 func EntryFromString(raw string) *Entry {
 	result := Entry{
+		DeviceName:     "unknown",
 		Time:           time.Now(),
 		AdditionalData: make(map[string]string),
 		ContextData:    make(map[string]string),
@@ -46,6 +48,8 @@ func EntryFromString(raw string) *Entry {
 				result.VisitorID = v
 			} else if k == "pageName" && !isCtx {
 				result.PageName = v
+			} else if k == "DeviceName" {
+				result.DeviceName = v
 			}
 
 			fullKey := strings.Join(prefix.parts, "") + k

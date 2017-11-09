@@ -12,9 +12,10 @@ import (
 const rootDir string = "archive_test_dir"
 
 var entry *Entry = &Entry{
-	Time:      time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
-	VisitorID: "visitorid",
-	PageName:  "pagename",
+	Time:       time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
+	VisitorID:  "visitorid",
+	DeviceName: "devicename",
+	PageName:   "pagename",
 	AdditionalData: map[string]string{
 		"mid":      "visitorid",
 		"pageName": "pagename",
@@ -24,8 +25,11 @@ var entry *Entry = &Entry{
 	},
 }
 
-func assertArchive(t *testing.T, vID, want string) {
-	archive := path.Join(rootDir, time.Now().Format("2006-01-02"), vID)
+func assertArchive(t *testing.T, entry *Entry, want string) {
+	archive := path.Join(
+		rootDir,
+		time.Now().Format("2006-01-02"),
+		fmt.Sprintf("%s|%s", entry.VisitorID, entry.DeviceName))
 
 	got, err := ioutil.ReadFile(archive)
 	if err != nil {
@@ -57,7 +61,8 @@ func TestWriterSingleVisitor(t *testing.T) {
 	}
 
 	// Assert
-	assertArchive(t, entry.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
+	assertArchive(t, entry,
+		"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"deviceName\":\"devicename\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
 func TestWriterSameVisitor(t *testing.T) {
@@ -77,9 +82,9 @@ func TestWriterSameVisitor(t *testing.T) {
 	}
 
 	// Assert
-	assertArchive(t, entry.VisitorID,
-		"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n"+
-			"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
+	assertArchive(t, entry,
+		"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"deviceName\":\"devicename\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n"+
+			"{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"deviceName\":\"devicename\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
 func TestWriterMultipleVisitors(t *testing.T) {
@@ -87,9 +92,10 @@ func TestWriterMultipleVisitors(t *testing.T) {
 
 	// Setup
 	entry2 := &Entry{
-		Time:      time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
-		VisitorID: "visitorid2",
-		PageName:  "pagename",
+		Time:       time.Date(2016, time.June, 28, 8, 13, 0, 0, time.UTC),
+		VisitorID:  "visitorid2",
+		DeviceName: "devicename",
+		PageName:   "pagename",
 		AdditionalData: map[string]string{
 			"mid":      "visitorid2",
 			"pageName": "pagename",
@@ -113,8 +119,8 @@ func TestWriterMultipleVisitors(t *testing.T) {
 	}
 
 	// Assert
-	assertArchive(t, entry.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
-	assertArchive(t, entry2.VisitorID, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid2\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid2\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
+	assertArchive(t, entry, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid\",\"deviceName\":\"devicename\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
+	assertArchive(t, entry2, "{\"time\":\"2016-06-28T08:13:00Z\",\"visitorID\":\"visitorid2\",\"deviceName\":\"devicename\",\"pageName\":\"pagename\",\"additionalData\":{\"mid\":\"visitorid2\",\"pageName\":\"pagename\"},\"contextData\":{\"a.DeviceName\":\"devicename\"}},\n")
 }
 
 func BenchmarkWriter(b *testing.B) {

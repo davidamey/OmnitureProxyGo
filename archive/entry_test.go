@@ -9,9 +9,10 @@ import (
 func TestEntryFromString(t *testing.T) {
 	raw := "mid=visitorid&pageName=pagename&c.&a.&DeviceName=devicename&.a&.c"
 	want := &Entry{
-		Time:      time.Now(),
-		VisitorID: "visitorid",
-		PageName:  "pagename",
+		Time:       time.Now(),
+		VisitorID:  "visitorid",
+		DeviceName: "devicename",
+		PageName:   "pagename",
 		AdditionalData: map[string]string{
 			"mid":      "visitorid",
 			"pageName": "pagename",
@@ -35,6 +36,10 @@ func Diff(expected, actual *Entry) string {
 
 	if leA.VisitorID != leB.VisitorID {
 		return fmt.Sprintf("VisitorID (%q, %q)", leA.VisitorID, leB.VisitorID)
+	}
+
+	if leA.DeviceName != leB.DeviceName {
+		return fmt.Sprintf("DeviceName (%q, %q)", leA.DeviceName, leB.DeviceName)
 	}
 
 	if leA.PageName != leB.PageName {

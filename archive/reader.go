@@ -4,12 +4,18 @@ import (
 	"io/ioutil"
 	"path"
 	"regexp"
+	"strings"
 )
 
 type Reader interface {
 	GetDates() []string
-	GetVisitorsForDate(string) []string
+	GetVisitorsForDate(string) []*Visitor
 	GetArchive(string, string) []byte
+}
+
+type Visitor struct {
+	VID    string `json:"vid"`
+	Device string `json:"device"`
 }
 
 type fileReader struct {
@@ -34,22 +40,44 @@ func (r *fileReader) GetDates() []string {
 	return dates
 }
 
-func (r *fileReader) GetVisitorsForDate(date string) []string {
+func (r *fileReader) GetVisitorsForDate(date string) []*Visitor {
 	// todo: check date dir exists?
-
 	files, _ := ioutil.ReadDir(path.Join(r.rootDir, date))
 
-	visitors := []string{}
+	visitors := []*Visitor{}
 	for _, f := range files {
-		visitors = append(visitors, f.Name())
+		vid, device := splitLogName(f.Name())
+		visitors = append(visitors, &Visitor{vid, device})
 	}
 	return visitors
 }
 
 func (r *fileReader) GetArchive(date, visitor string) []byte {
-	logFile := path.Join(r.rootDir, date, visitor)
-	raw, _ := ioutil.ReadFile(logFile)
+	archiveDir := path.Join(r.rootDir, date)
+	files, _ := ioutil.ReadDir(archiveDir)
 
+	var archive string
+	for _, f := range files {
+		vid, _ := splitLogName(f.Name())
+		if vid == visitor {
+			archive = path.Join(archiveDir, f.Name())
+		}
+	}
+
+	if archive == "" {
+		return nil
+	}
+
+	raw, _ := ioutil.ReadFile(archive)
 	// To make this valid JSON, we need to remove the last `,\n` and wrap in `[]`.
 	return append(append([]byte{'['}, raw[:len(raw)-2]...), ']')
+}
+
+func splitLogName(s string) (string, string) {
+	parts := strings.SplitN(s, "|", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	} else {
+		return parts[0], "unknown"
+	}
 }
