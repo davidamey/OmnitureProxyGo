@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/davidamey/omnitureproxy/archive"
 	"github.com/fukata/golang-stats-api-handler"
@@ -11,16 +12,28 @@ import (
 )
 
 var rgxDate = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}$")
-var rgxVid = regexp.MustCompile("^\\d{38}$")
+var rgxVid = regexp.MustCompile("^\\d{3,38}$") //todo: remove 3, once testing is done
 
 var fetcher archive.Reader = archive.NewReader("_archive")
 
 func NewApi() http.Handler {
 	r := gin.New()
+	r.RedirectTrailingSlash = false
 	api := r.Group("/api")
 
+	api.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Cache-Control", "no-cache, must-revalidate")
+
+		c.Next()
+	})
+
 	api.Any("/", func(c *gin.Context) {
-		c.String(200, "/api/logs/")
+		c.String(200, strings.Join([]string{
+			"/api/logs",
+			"/api/logs/<date>",
+			"/api/logs/<date>/<visitor ID>",
+		}, "\n"))
 	})
 
 	api.Any("/stats", gin.WrapF(stats_api.Handler))
