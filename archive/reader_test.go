@@ -10,6 +10,8 @@ import (
 const fetcherRootDir string = "log_test_dir"
 
 func TestGetLogDates(t *testing.T) {
+	defer os.RemoveAll(fetcherRootDir)
+
 	// Setup
 	os.MkdirAll(path.Join(fetcherRootDir, "2016-01-01"), 0755)
 	os.MkdirAll(path.Join(fetcherRootDir, "2015-02-02"), 0755)

@@ -31,7 +31,7 @@ func NewReader(dir string) Reader {
 func (r *fileReader) GetDates() []string {
 	files, _ := ioutil.ReadDir(r.rootDir)
 
-	dates := []string{}
+	dates := []string{} // Initialise to empty array so we get [] out, not null
 	for _, f := range files {
 		if f.IsDir() && validDate.MatchString(f.Name()) {
 			dates = append(dates, f.Name())

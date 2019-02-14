@@ -41,12 +41,8 @@ func assertArchive(t *testing.T, entry *Entry, want string) {
 	}
 }
 
-func cleanUp() {
-	os.RemoveAll(rootDir)
-}
-
 func TestWriterSingleVisitor(t *testing.T) {
-	defer cleanUp()
+	defer os.RemoveAll(rootDir)
 
 	// Setup
 	w := NewWriter(rootDir)
@@ -66,7 +62,7 @@ func TestWriterSingleVisitor(t *testing.T) {
 }
 
 func TestWriterSameVisitor(t *testing.T) {
-	defer cleanUp()
+	defer os.RemoveAll(rootDir)
 
 	// Setup
 	w := NewWriter(rootDir)
@@ -88,7 +84,7 @@ func TestWriterSameVisitor(t *testing.T) {
 }
 
 func TestWriterMultipleVisitors(t *testing.T) {
-	defer cleanUp()
+	defer os.RemoveAll(rootDir)
 
 	// Setup
 	entry2 := &Entry{
@@ -124,7 +120,7 @@ func TestWriterMultipleVisitors(t *testing.T) {
 }
 
 func BenchmarkWriter(b *testing.B) {
-	defer cleanUp()
+	defer os.RemoveAll(rootDir)
 
 	// Setup
 	w := NewWriter(rootDir)

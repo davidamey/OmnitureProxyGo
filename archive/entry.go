@@ -25,34 +25,37 @@ func EntryFromString(raw string) *Entry {
 		AdditionalData: make(map[string]string),
 		ContextData:    make(map[string]string),
 	}
+
 	parts := strings.Split(raw, "&")
-	prefix := prefix{parts: make([]string, 0, 5)}
+	prefix := make(prefix, 0, 5)
 	isCtx := false
 
 	for _, p := range parts {
-		if p == "c." {
+		switch {
+		case p == "c.":
 			isCtx = true
-		} else if p == ".c" {
+		case p == ".c":
 			isCtx = false
-		} else if strings.HasSuffix(p, ".") {
+		case strings.HasSuffix(p, "."):
 			prefix.push(p)
-		} else if strings.HasPrefix(p, ".") {
+		case strings.HasPrefix(p, "."):
 			prefix.pop()
-		} else {
+		default:
 			// If we're here then it's a simple k=v pair
 			k, v := splitKVP(p)
 
 			// We extract some variables that can be used to index the log entry but we leave them where they were too.
 			// mid is the visitor ID
-			if k == "mid" {
+			switch {
+			case k == "mid":
 				result.VisitorID = v
-			} else if k == "pageName" && !isCtx {
+			case k == "pageName" && !isCtx:
 				result.PageName = v
-			} else if k == "DeviceName" {
+			case k == "DeviceName":
 				result.DeviceName = v
 			}
 
-			fullKey := strings.Join(prefix.parts, "") + k
+			fullKey := prefix.applyTo(k)
 			if isCtx {
 				result.ContextData[fullKey] = v
 			} else {
@@ -60,30 +63,30 @@ func EntryFromString(raw string) *Entry {
 			}
 		}
 	}
-
 	return &result
 }
 
 // prefix is simply a wrapper around a string array that is eventually 'joined'
-type prefix struct {
-	parts []string
-}
+type prefix []string
 
 func (p *prefix) push(s string) {
-	p.parts = append(p.parts, s)
+	*p = append(*p, s)
 }
 
 func (p *prefix) pop() {
-	p.parts = p.parts[:len(p.parts)-1]
+	*p = (*p)[:len((*p))-1]
+}
+
+func (p *prefix) applyTo(k string) string {
+	return strings.Join(*p, "") + k
 }
 
 // splitKVP returns two parts split on first `=`
-func splitKVP(s string) (string, string) {
+func splitKVP(s string) (key, val string) {
 	parts := strings.SplitN(s, "=", 2)
-
+	key = parts[0]
 	if len(parts) == 2 {
-		return parts[0], parts[1]
-	} else {
-		return parts[0], ""
+		val = parts[1]
 	}
+	return
 }

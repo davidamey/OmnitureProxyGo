@@ -20,14 +20,14 @@ type Writer interface {
 type fileWriter struct {
 	rootDir string
 	queue   chan *Entry
-	quit    chan bool
+	quit    chan struct{}
 }
 
 func NewWriter(dir string) Writer {
 	return &fileWriter{
 		rootDir: dir,
 		queue:   make(chan *Entry, 100),
-		quit:    make(chan bool),
+		quit:    make(chan struct{}),
 	}
 }
 
@@ -47,7 +47,7 @@ func (w *fileWriter) StartProcessing() {
 
 func (w *fileWriter) StopProcessing() {
 	go func() {
-		w.quit <- true
+		w.quit <- struct{}{}
 	}()
 }
 
