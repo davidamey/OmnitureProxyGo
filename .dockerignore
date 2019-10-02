@@ -1,0 +1,6 @@
+_archive
+Dockerfile
+LICENSE
+.dockerignore
+.gitignore
+docker-compose.yml

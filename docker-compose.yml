@@ -1,0 +1,9 @@
+version: '3.7'
+
+services:
+  omnitureproxy:
+    image: omnitureproxy:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - ./_archive:/var/omniture_logs
