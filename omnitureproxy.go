@@ -16,10 +16,8 @@ import (
 )
 
 type OmnitureProxy struct {
-	ListenPort string
 	TargetURL  string
 	ArchiveDir string
-	AssetsDir  string
 
 	hub socket.Hub
 }
@@ -33,11 +31,11 @@ func (op *OmnitureProxy) Start() {
 	log.Println("Starting")
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(op.AssetsDir)))
-	mux.Handle("/api/", api.NewApi())
+	mux.Handle("/api/", api.NewApi(op.ArchiveDir))
 
-	// socket
+	// sockets
 	op.hub = socket.NewHub()
+	go op.hub.Run()
 	mux.HandleFunc("/ws", op.hub.ServeWS)
 
 	// archive
@@ -46,7 +44,7 @@ func (op *OmnitureProxy) Start() {
 	defer archiver.StopProcessing()
 
 	// proxy
-	p := proxy.NewProxy(archiver, op, op.TargetURL)
+	p := proxy.New(archiver, op, op.TargetURL)
 	mux.HandleFunc("/b/ss/", p.Handle)
 
 	n := negroni.New()
@@ -54,22 +52,20 @@ func (op *OmnitureProxy) Start() {
 	n.UseHandler(mux)
 
 	// start the server
+	port := getPort()
 	s := &http.Server{
-		Addr:           detectAddress(),
+		Addr:           port,
 		Handler:        n,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	fmt.Println("listening on", port)
 	log.Fatal(s.ListenAndServe())
-	// log.Fatal(s.ListenAndServeTLS("cantor.cer", "cantor.key"))
 }
 
-func detectAddress(addr ...string) string {
-	if len(addr) > 0 {
-		return addr[0]
-	}
+func getPort() string {
 	if port := os.Getenv("PORT"); port != "" {
 		return ":" + port
 	}
@@ -78,38 +74,28 @@ func detectAddress(addr ...string) string {
 
 func main() {
 	const (
-		defaultPort       = ":3001"
-		portUsage         = "server port e.g. ':3000' or ':8080'"
-		defaultTarget     = "http://localhost:5000"
-		targetUsage       = "redirect url e.g. 'http://localhost:3000'"
+		defaultTarget     = ""
+		targetUsage       = "redirect url e.g. 'https://somewhere:5000' ('' to disable)"
 		defaultArchiveDir = "_archive"
-		archiveDirUsage   = "folder to log to e.g. 'archive'"
-		defaultAssetsDir  = "_assets"
-		assetsDirUsage    = "folder to server static site from, e.g. 'assets'"
+		archiveDirUsage   = "folder to log to e.g. '/var/omniture_archive'"
 	)
 
-	port := flag.String("port", defaultPort, portUsage)
 	url := flag.String("url", defaultTarget, targetUsage)
 	archiveDir := flag.String("archive", defaultArchiveDir, archiveDirUsage)
-	assetsDir := flag.String("assets", defaultAssetsDir, assetsDirUsage)
 
 	flag.Parse()
 
-	fmt.Println("server will run on:", *port)
 	fmt.Println("redirecting to:", *url)
 	fmt.Println("archiving to:", *archiveDir)
-	fmt.Println("serving site from:", *assetsDir)
 
 	op := &OmnitureProxy{
-		ListenPort: *port,
 		TargetURL:  *url,
 		ArchiveDir: *archiveDir,
-		AssetsDir:  *assetsDir,
 	}
 
 	op.Start()
 
 	for {
-		// Stay alive forever...is this good practice?
+		// Stayin' alive
 	}
 }

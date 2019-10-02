@@ -2,24 +2,23 @@ package proxy
 
 import (
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/davidamey/omnitureproxy/logs"
+	"github.com/davidamey/omnitureproxy/archive"
 )
 
 var myT *testing.T
 
 var testRequest string = "mid=visitorid&pageName=pagename&c.&a.&DeviceName=devicename&.a&.c"
-var expectedLE *logs.LogEntry = &logs.LogEntry{
+var expectedLE *archive.Entry = &archive.Entry{
 	Time:      time.Now(),
-	VisitorID: "visitorid",
+	VisitorID: "1234567890",
 	PageName:  "pagename",
 	AdditionalData: map[string]string{
-		"mid":      "visitorid",
+		"mid":      "1234567890",
 		"pageName": "pagename",
 	},
 	ContextData: map[string]string{
@@ -27,56 +26,44 @@ var expectedLE *logs.LogEntry = &logs.LogEntry{
 	},
 }
 
-// Mock socket
-type mockSocket struct{}
+type mockNotifier struct{}
 
-func (s *mockSocket) BroadcastTo(room, message string, args ...interface{}) {
-	le := args[0].(*logs.LogEntry)
-
-	if diff := Diff(expectedLE, le); diff != "" {
+func (s *mockNotifier) Notify(entry *archive.Entry) {
+	if diff := Diff(expectedLE, entry); diff != "" {
 		myT.Errorf("invalid log entry. differs at %s", diff)
 	}
 }
 
-// Mock logger
-type mockLogger struct{}
+type mockArchiver struct{}
 
-func (l *mockLogger) StartProcessing()       {}
-func (l *mockLogger) StopProcessing()        {}
-func (l *mockLogger) HasPendingWrites() bool { return false }
-func (l *mockLogger) Save(le *logs.LogEntry) {
+func (l *mockArchiver) StartProcessing()       {}
+func (l *mockArchiver) StopProcessing()        {}
+func (l *mockArchiver) HasPendingWrites() bool { return false }
+func (l *mockArchiver) Save(le *archive.Entry) {
 	if diff := Diff(expectedLE, le); diff != "" {
 		myT.Errorf("invalid log entry. differs at %s", diff)
 	}
-}
-
-// Mock Proxy
-type mockProxy struct{}
-
-func (p *mockProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// test stuff
-	w.Write([]byte("mockresponse"))
 }
 
 // Tests
 func TestProxy(t *testing.T) {
 	// Setup
 	myT = t
-	r := httptest.NewRequest("GET", "http://omnitureurl.com", strings.NewReader(testRequest))
+	r := httptest.NewRequest("GET", "http://omniture-url.com", strings.NewReader(testRequest))
 	w := httptest.NewRecorder()
-	p := NewProxy(&mockSocket{}, &mockLogger{}, &mockProxy{})
+	p := New(&mockArchiver{}, &mockNotifier{}, "")
 
 	// Test
 	p.Handle(w, r)
 
 	// Assert
-	if w.Body.String() != "mockresponse" {
+	if w.Body.String() != "" {
 		t.Errorf("Invalid response:\nexpected: %q\ngot: %q", "mockresponse", w.Body.String())
 	}
 }
 
 // Helpers
-func Diff(expected, actual *logs.LogEntry) string {
+func Diff(expected, actual *archive.Entry) string {
 	leA, leB := *expected, *actual
 
 	if leA.Time.Sub(leB.Time).Seconds() > 1 {

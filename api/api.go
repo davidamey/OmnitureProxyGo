@@ -7,16 +7,18 @@ import (
 	"strings"
 
 	"github.com/davidamey/omnitureproxy/archive"
-	"github.com/fukata/golang-stats-api-handler"
+	stats_api "github.com/fukata/golang-stats-api-handler"
 	"github.com/gin-gonic/gin"
 )
 
 var rgxDate = regexp.MustCompile("^\\d{4}-\\d{2}-\\d{2}$")
 var rgxVid = regexp.MustCompile("^\\d{3,38}$") //todo: remove 3, once testing is done
 
-var fetcher archive.Reader = archive.NewReader("_archive")
+var fetcher archive.Reader
 
-func NewApi() http.Handler {
+func NewApi(archiveDir string) http.Handler {
+	fetcher = archive.NewReader(archiveDir)
+
 	r := gin.New()
 	r.RedirectTrailingSlash = false
 	api := r.Group("/api")

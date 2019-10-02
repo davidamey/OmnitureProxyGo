@@ -26,7 +26,7 @@ func EntryFromString(raw string) *Entry {
 		ContextData:    make(map[string]string),
 	}
 
-	parts := strings.Split(raw, "&")
+	parts := strings.Split(strings.TrimSpace(raw), "&")
 	prefix := make(prefix, 0, 5)
 	isCtx := false
 

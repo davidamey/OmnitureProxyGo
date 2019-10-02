@@ -47,12 +47,11 @@ func (p *proxy) Handle(w http.ResponseWriter, r *http.Request) {
 func newProxier(target string) Proxier {
 	if target == "" {
 		return nil
-	} else {
-		url, _ := url.Parse(target)
-		return httputil.NewSingleHostReverseProxy(url)
 	}
+	url, _ := url.Parse(target)
+	return httputil.NewSingleHostReverseProxy(url)
 }
 
-func NewProxy(archiver archive.Writer, notifier Notifier, proxyURL string) *proxy {
+func New(archiver archive.Writer, notifier Notifier, proxyURL string) *proxy {
 	return &proxy{archiver, notifier, newProxier(proxyURL)}
 }

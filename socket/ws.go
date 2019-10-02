@@ -41,43 +41,6 @@ type WSClient struct {
 	send chan interface{}
 }
 
-// readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (c *WSClient) readPump() {
-	defer func() {
-		c.hub.unregister <- c
-		c.conn.Close()
-	}()
-
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
-	for {
-		var msg string
-		err := c.conn.ReadJSON(&msg)
-
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("[SOCKET] error: %v", err)
-			} else {
-				log.Printf("[SOCKET] error parsing packet: %v", err)
-			}
-			break
-		}
-
-		c.hub.inbound <- msg
-	}
-}
-
-// writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
 func (c *WSClient) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
