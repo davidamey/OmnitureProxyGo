@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -44,11 +45,17 @@ func (r *fileReader) GetVisitorsForDate(date string) []*Visitor {
 	// todo: check date dir exists?
 	files, _ := ioutil.ReadDir(path.Join(r.rootDir, date))
 
+	// order by modified time
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModTime().After(files[j].ModTime())
+	})
+
 	visitors := []*Visitor{}
 	for _, f := range files {
 		vid, device := splitLogName(f.Name())
 		visitors = append(visitors, &Visitor{vid, device})
 	}
+
 	return visitors
 }
 
