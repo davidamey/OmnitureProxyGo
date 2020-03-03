@@ -1,23 +1,21 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/davidamey/omnitureproxy/api"
-	"github.com/davidamey/omnitureproxy/archive"
-	"github.com/davidamey/omnitureproxy/proxy"
-	"github.com/davidamey/omnitureproxy/socket"
+	"omnitureproxy/api"
+	"omnitureproxy/archive"
+	"omnitureproxy/proxy"
+	"omnitureproxy/socket"
 	"github.com/urfave/negroni"
 )
 
 type OmnitureProxy struct {
-	TargetURL  string
 	ArchiveDir string
+	TargetURL  string
 
 	hub socket.Hub
 }
@@ -27,9 +25,7 @@ func (op *OmnitureProxy) Notify(entry *archive.Entry) {
 	op.hub.SendToAll(entry)
 }
 
-func (op *OmnitureProxy) Start() {
-	log.Println("Starting")
-
+func (op *OmnitureProxy) Start(port string) {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api.NewApi(op.ArchiveDir))
 
@@ -52,7 +48,6 @@ func (op *OmnitureProxy) Start() {
 	n.UseHandler(mux)
 
 	// start the server
-	port := getPort()
 	s := &http.Server{
 		Addr:           port,
 		Handler:        n,
@@ -61,7 +56,7 @@ func (op *OmnitureProxy) Start() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	fmt.Println("listening on", port)
+	log.Println("listening on", port)
 	log.Fatal(s.ListenAndServe())
 }
 
@@ -72,28 +67,33 @@ func getPort() string {
 	return ":3000"
 }
 
+func mustGetEnv(key, msg string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	log.Fatal(msg)
+	return ""
+}
+
 func main() {
-	const (
-		defaultTarget     = ""
-		targetUsage       = "redirect url e.g. 'https://somewhere:5000' ('' to disable)"
-		defaultArchiveDir = "_archive"
-		archiveDirUsage   = "folder to log to e.g. '/var/omniture_archive'"
-	)
+	port := ":" + mustGetEnv("PORT", "No http port set (PORT)")
+	archiveDir := mustGetEnv("ARCHIVE_DIR", "No archive dir set (ARCHIVE_DIR)")
+	// redirectURL := mustGetEnv("REDIRECT_URL", "No redirect URL set (REDIRECT_URL) ")
+	redirectURL := os.Getenv("REDIRECT_URL")
 
-	url := flag.String("url", defaultTarget, targetUsage)
-	archiveDir := flag.String("archive", defaultArchiveDir, archiveDirUsage)
-
-	flag.Parse()
-
-	fmt.Println("redirecting to:", *url)
-	fmt.Println("archiving to:", *archiveDir)
-
-	op := &OmnitureProxy{
-		TargetURL:  *url,
-		ArchiveDir: *archiveDir,
+	log.Println("archiving to:", archiveDir)
+	if redirectURL == "" {
+		log.Println("not redirecting")
+	} else {
+		log.Println("redirecting to:", redirectURL)
 	}
 
-	op.Start()
+	op := &OmnitureProxy{
+		ArchiveDir: archiveDir,
+		TargetURL:  redirectURL,
+	}
+
+	op.Start(port)
 
 	for {
 		// Stayin' alive

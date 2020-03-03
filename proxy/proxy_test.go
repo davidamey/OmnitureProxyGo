@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davidamey/omnitureproxy/archive"
+	"omnitureproxy/archive"
 )
 
 var myT *testing.T

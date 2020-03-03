@@ -1,13 +1,13 @@
 # Build
-FROM iron/go:dev AS builder
-WORKDIR /go/src/github.com/davidamey/omnitureproxy
+FROM golang:alpine AS builder
+WORKDIR /omnitureproxy
 COPY . .
-RUN go get
 RUN go build -o omnitureproxy
 
 # Run
-FROM iron/go:dev
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
 RUN mkdir "_archive"
-COPY --from=builder /go/src/github.com/davidamey/omnitureproxy/omnitureproxy .
+COPY --from=builder /omnitureproxy/omnitureproxy .
 ENV GIN_MODE=release
-ENTRYPOINT [ "./omnitureproxy", "-archive", "/var/omniture_logs" ]
+ENTRYPOINT [ "./omnitureproxy" ]

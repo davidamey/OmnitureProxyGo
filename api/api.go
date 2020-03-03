@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/davidamey/omnitureproxy/archive"
+	"omnitureproxy/archive"
 	stats_api "github.com/fukata/golang-stats-api-handler"
 	"github.com/gin-gonic/gin"
 )

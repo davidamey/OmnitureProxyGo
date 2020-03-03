@@ -8,7 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/davidamey/omnitureproxy/archive"
+	"omnitureproxy/archive"
 )
 
 type Notifier interface {
